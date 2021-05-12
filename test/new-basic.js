@@ -1,5 +1,5 @@
 const test = require('tape')
-const hcrypto = require('hypercore-crypto')
+const dcrypto = require('@ddatabase/crypto')
 const MultifeedNetworker = require('../networker')
 const Multifeed = require('..')
 const { create, cleanup } = require('./lib/networker')
@@ -11,7 +11,7 @@ test('minimal swarm example', async function (t) {
   const swarm1 = new MultifeedNetworker(networker1)
   const swarm2 = new MultifeedNetworker(networker2)
 
-  const rootKey = hcrypto.keyPair().publicKey
+  const rootKey = dcrypto.keyPair().publicKey
 
   const multi1 = new Multifeed(store1, { rootKey })
   swarm1.swarm(multi1)
@@ -48,8 +48,8 @@ test('multiple topics example', async function (t) {
   const swarm1 = new MultifeedNetworker(networker1)
   const swarm2 = new MultifeedNetworker(networker2)
 
-  const rootKey1 = hcrypto.keyPair().publicKey
-  const rootKey2 = hcrypto.keyPair().publicKey
+  const rootKey1 = dcrypto.keyPair().publicKey
+  const rootKey2 = dcrypto.keyPair().publicKey
 
   // open first topic
   const multi1a = new Multifeed(store1, { rootKey: rootKey1 })
@@ -79,8 +79,8 @@ test('multiple topics example', async function (t) {
 
   await timeout(1000)
 
-  t.deepEqual(toKeys(multi1a.feeds()), toKeys([writer1a, writer1b]), 'topic A, mulitfeed 1: creates hypercores on replication')
-  t.deepEqual(toKeys(multi1b.feeds()), toKeys([writer1a, writer1b]), 'topic A, multifeed 2: creates hypercores on replication')
+  t.deepEqual(toKeys(multi1a.feeds()), toKeys([writer1a, writer1b]), 'topic A, mulitfeed 1: creates ddatabases on replication')
+  t.deepEqual(toKeys(multi1b.feeds()), toKeys([writer1a, writer1b]), 'topic A, multifeed 2: creates ddatabases on replication')
   t.deepEqual(
     await get(await writer(multi1b, '1'), 0),
     Buffer.from('first'),
@@ -92,8 +92,8 @@ test('multiple topics example', async function (t) {
     'replicates data'
   )
 
-  t.deepEqual(toKeys(multi2a.feeds()), toKeys([writer2a, writer2b]), 'topic B, multifeed 1: creates hypercores on replication')
-  t.deepEqual(toKeys(multi2b.feeds()), toKeys([writer2a, writer2b]), 'topic B, multifeed 2: creates hypercores on replication')
+  t.deepEqual(toKeys(multi2a.feeds()), toKeys([writer2a, writer2b]), 'topic B, multifeed 1: creates ddatabases on replication')
+  t.deepEqual(toKeys(multi2b.feeds()), toKeys([writer2a, writer2b]), 'topic B, multifeed 2: creates ddatabases on replication')
   t.deepEqual(
     await get(await writer(multi2b, '1'), 0),
     Buffer.from('third'),
@@ -130,17 +130,17 @@ function writer (multifeed, name) {
   })
 }
 
-function append (core, data) {
+function append (base, data) {
   return new Promise((resolve, reject) => {
-    core.append(data, err => {
+    base.append(data, err => {
       if (err) return reject(err)
       return resolve()
     })
   })
 }
-function get (core, idx, opts = {}) {
+function get (base, idx, opts = {}) {
   return new Promise((resolve, reject) => {
-    core.get(idx, opts, (err, data) => {
+    base.get(idx, opts, (err, data) => {
       if (err) return reject(err)
       return resolve(data)
     })

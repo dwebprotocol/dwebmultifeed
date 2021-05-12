@@ -1,7 +1,7 @@
-const Corestore = require('corestore')
+const Basestore = require('basestorex')
 const ram = require('random-access-memory')
-const dht = require('@hyperswarm/dht')
-const Networker = require('@corestore/networker')
+const dht = require('@dswarm/dht')
+const Networker = require('@basestore/networker')
 const BOOTSTRAP_PORT = 3100
 var bootstrap = null
 
@@ -17,7 +17,7 @@ async function create (opts = {}) {
       return bootstrap.once('listening', resolve)
     })
   }
-  const store = new Corestore(ram)
+  const store = new Basestore(ram)
   await store.ready()
   const networker = new Networker(store, {
     ...opts,

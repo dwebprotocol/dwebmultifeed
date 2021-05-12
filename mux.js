@@ -1,4 +1,4 @@
-var Protocol = require('hypercore-protocol')
+var Protocol = require('@ddatabase/protocol')
 var readify = require('./ready')
 var inherits = require('inherits')
 var events = require('events')
@@ -267,7 +267,7 @@ Multiplexer.prototype._replicateFeeds = function (keys, cb) {
   keys = uniq(keys)
   debug(this._id, '[REPLICATION] _replicateFeeds', keys.length, keys)
 
-  // Postpone stream finalization until all pending cores are added. Otherwise
+  // Postpone stream finalization until all pending bases are added. Otherwise
   // a non-live replication might terminate because it thinks all feeds have
   // been synced, even though new ones are still in the process of being set up
   // for sync.
@@ -286,7 +286,7 @@ Multiplexer.prototype._replicateFeeds = function (keys, cb) {
     self.stream.prefinalize.continue()
 
     // only the feeds passed to `feeds` option will be replicated (sent or received)
-    // hypercore-protocol has built in protection against receiving unexpected/not asked for data.
+    // @ddatabase/protocol has built in protection against receiving unexpected/not asked for data.
     feeds.forEach(function (feed) {
       feed.ready(function () { // wait for each feed to be ready before replicating.
         var hexKey = feed.key.toString('hex')

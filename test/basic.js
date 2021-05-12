@@ -1,5 +1,5 @@
 var test = require('tape')
-var crypto = require('hypercore-crypto')
+var crypto = require('@ddatabase/crypto')
 var multifeed = require('..')
 var ram = require('random-access-memory')
 var ral = require('random-access-latency')

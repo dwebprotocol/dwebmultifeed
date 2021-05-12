@@ -1,6 +1,6 @@
-const Corestore = require('corestore')
-const hcrypto = require('hypercore-crypto')
-const Protocol = require('hypercore-protocol')
+const Basestore = require('basestorex')
+const dcrypto = require('@ddatabase/crypto')
+const Protocol = require('@ddatabase/protocol')
 const Nanoresource = require('nanoresource/emitter')
 const collect = require('stream-collector')
 const debug = require('debug')('multifeed')
@@ -9,7 +9,7 @@ const through = require('through2')
 
 const { MuxerTopic } = require('./networker')
 
-// Default key to bootstrap replication and namespace the corestore
+// Default key to bootstrap replication and namespace the basestore
 // It is not advised to use this for real purposes. If no root key is
 // passed in, this key will be used for opening a protocol channel
 // and as the namespace to store the list of feeds that are part of this
@@ -19,12 +19,12 @@ const DEFAULT_ROOT_KEY = Buffer.from('bee80ff3a4ee5e727dc44197cb9d25bf8f19d50b0f
 const MULTIFEED_NAMESPACE_PREFIX = '@multifeed:'
 const FEED_NAMESPACE_PREFIX = '@multifeed:feed:'
 const PERSIST_NAMESPACE = '@multifeed:persist'
-// hypermultifeed
+// dwebmultifeed
 class Multifeed extends Nanoresource {
   constructor (storage, opts = {}) {
     super()
     this._opts = opts
-    this._id = hcrypto.randomBytes(2).toString('hex')
+    this._id = dcrypto.randomBytes(2).toString('hex')
     this._rootKey = opts.rootKey || opts.encryptionKey || opts.key
     if (this._rootKey && !Buffer.isBuffer(this._rootKey)) {
       this._rootKey = Buffer.from(this._rootKey, 'hex')
@@ -33,10 +33,10 @@ class Multifeed extends Nanoresource {
       debug('WARNING: Using insecure default root key')
       this._rootKey = DEFAULT_ROOT_KEY
     }
-    this._corestore = defaultCorestore(storage, opts)
+    this._basestore = defaultBasestore(storage, opts)
       .namespace(MULTIFEED_NAMESPACE_PREFIX + this._rootKey.toString('hex'))
 
-    this._handlers = opts.handlers || new MultifeedPersistence(this._corestore)
+    this._handlers = opts.handlers || new MultifeedPersistence(this._basestore)
     this._feedsByKey = new Map()
     this._feedsByName = new Map()
     this.ready = this.open.bind(this)
@@ -47,16 +47,16 @@ class Multifeed extends Nanoresource {
   }
 
   get discoveryKey () {
-    if (!this._discoveryKey) this._discoveryKey = hcrypto.discoveryKey(this._rootKey)
+    if (!this._discoveryKey) this._discoveryKey = dcrypto.discoveryKey(this._rootKey)
     return this._discoveryKey
   }
 
   _open (cb) {
-    this._corestore.ready(err => {
+    this._basestore.ready(err => {
       if (err) return cb(err)
       this._handlers.ready((err) => {
         if (err) return cb(err)
-        this._muxer = this._opts.muxer || new MuxerTopic(this._corestore, this._rootKey, this._opts)
+        this._muxer = this._opts.muxer || new MuxerTopic(this._basestore, this._rootKey, this._opts)
         this._muxer.on('feed', feed => {
           this._addFeed(feed, null, true)
         })
@@ -69,7 +69,7 @@ class Multifeed extends Nanoresource {
     const self = this
     let pending = 1
     if (this._handlers.close) ++pending && this._handlers.close(onclose)
-    this._corestore.close(onclose)
+    this._basestore.close(onclose)
     function onclose () {
       if (--pending !== 0) return
       self._feedsByKey = new Map()
@@ -100,7 +100,7 @@ class Multifeed extends Nanoresource {
     this._handlers.fetchFeeds((err, infos) => {
       if (err) return cb(err)
       for (const info of infos) {
-        const feed = this._corestore.get({
+        const feed = this._basestore.get({
           key: info.key,
           ...this._opts
         })
@@ -123,7 +123,7 @@ class Multifeed extends Nanoresource {
     }
     if (this._feedsByName.has(name)) return cb(null, this._feedsByName.get(name))
     const namespace = FEED_NAMESPACE_PREFIX + name
-    const feed = this._corestore.namespace(namespace).default({
+    const feed = this._basestore.namespace(namespace).default({
       valueEncoding: this._opts.valueEncoding,
       ...opts
     })
@@ -154,8 +154,8 @@ class Multifeed extends Nanoresource {
 }
 
 class MultifeedPersistence {
-  constructor (corestore) {
-    this.storage = corestore.namespace(PERSIST_NAMESPACE)
+  constructor (basestore) {
+    this.storage = basestore.namespace(PERSIST_NAMESPACE)
     this.feed = null
   }
 
@@ -191,19 +191,19 @@ function errorStream (err) {
   return tmp
 }
 
-function isCorestore (storage) {
+function isBasestore (storage) {
   return storage.default && storage.get && storage.replicate && storage.close
 }
 
-function defaultCorestore (storage, opts) {
-  if (isCorestore(storage)) return storage
+function defaultBasestore (storage, opts) {
+  if (isBasestore(storage)) return storage
   if (typeof storage === 'function') {
     var factory = path => storage(path)
   } else if (typeof storage === 'string') {
     factory = path => raf(storage + '/' + path)
   }
-  return new Corestore(factory, opts)
+  return new Basestore(factory, opts)
 }
 
 module.exports = function (...args) { return new Multifeed(...args) }
-module.exports.defaultCorestore = defaultCorestore
+module.exports.defaultBasestore = defaultBasestore

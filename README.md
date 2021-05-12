@@ -1,42 +1,37 @@
-# hyperultifeed
+# dwebmultifeed
 
-> Fork of https://gitlab.com/coboxcoop/multifeed
 
-> Which is a Fork of [@frando/corestore-multifeed](https://github.com/Frando/multifeed)
+Multifeed lets you group together a local set of ddatabases with
+a remote set of ddatabases under a single shared identifier or key.
 
-> Which is a Fork of [https://github.com/kappa-db/multifeed](https://github.com/kappa-db/multifeed)
+It solves the problem of [DDatabase](https://github.com/dwebprotocol/ddatabase)
+only allowing one writer per ddatabase by making it easy to manage and sync
+a collection of ddatabases -- by a variety of authors -- across peers.
 
-Multifeed lets you group together a local set of hypercores with
-a remote set of hypercores under a single shared identifier or key.
-
-It solves the problem of [Hypercore](https://github.com/mafintosh/hypercore)
-only allowing one writer per hypercore by making it easy to manage and sync
-a collection of hypercores -- by a variety of authors -- across peers.
-
-Replication works by extending the regular hypercore exchange mechanism to
+Replication works by extending the regular ddatabase exchange mechanism to
 include a meta-exchange, where peers share information about the feeds they
 have locally, and choose which of the remote feeds they'd like to download in
 exchange. Right now, the replication mechanism defaults to sharing all local
 feeds and downloading all remote feeds.
 
-This fork of multifeed removes storage of hypercores from multifeed,
-instead delegating / passing this on to [corestore](https://github.com/andrewosh/corestore).
+This fork of multifeed removes storage of ddatabases from multifeed,
+instead delegating / passing this on to [basestore](https://github.com/dwebprotocol/basestore).
 Multifeed now caches each feed using its given public key
 to ensure the correct feeds are shared on replication with remote peers.
-Feeds keys are persisted in an additional local-only hypercore
+Feeds keys are persisted in an additional local-only ddatabase
 (it is not shared during replication), so that a multifeed instance can be easily recomposed
-from our corestore, which holds no knowledge of which core belongs to which multifeed.
+from our basestore, which holds no knowledge of which base belongs to which multifeed.
 
-Using [corestore-swarm-networking](https://github.com/andrewosh/corestore-swarm-networking)
+Using [basestore-networker](https://github.com/dwebprotocol/basestore-networker)
 and the new multifeed networker, we can apply granular replication logic for
-several multifeeds across a single instance of the [Hyperswarm DHT](https://github.com/hyperswarm/hyperswarm).
+several multifeeds across a single instance of the [Hyperswarm DHT](https://github.com/dwebprotocol/dswarm).
 
 ## Usage
 
 ### Simple
 
 ```
-var Multifeed = require('multifeed')
+var Multifeed = require('dwebmultifeed')
 var ram = require('random-access-memory')
 
 var multi = new Multifeed('./db', { valueEncoding: 'json' })
@@ -44,14 +39,14 @@ var multi = new Multifeed('./db', { valueEncoding: 'json' })
 // a multifeed starts off empty
 console.log(multi.feeds().length)             // => 0
 
-// create as many writeable feeds as you want; returns hypercores
+// create as many writeable feeds as you want; returns ddatabases
 multi.writer('local', function (err, w) {
   console.log(w.key, w.writeable, w.readable)   // => Buffer <0x..> true true
   console.log(multi.feeds().length)             // => 1
 
-  // write data to any writeable feed, just like with hypercore
+  // write data to any writeable feed, just like with ddatabase
   w.append('foo', function () {
-    var m2 = multifeed(hypercore, ram, { valueEncoding: 'json' })
+    var m2 = multifeed(ddatabase, ram, { valueEncoding: 'json' })
     m2.writer('local', function (err, w2) {
       w2.append('bar', function () {
         replicate(multi, m2, function () {
@@ -87,28 +82,28 @@ function replicate (a, b, cb) {
 ### Complex
 
 ```
-const Corestore = require('corestore')
-const SwarmNetworker = require('corestore-swarm-networking')
-const Multifeed = require('multifeed')
-const Networker = require('multifeed/networker')
-const crypto = require('hypercore-crypto')
+const Basestore = require('basestorex')
+const SwarmNetworker = require('basestore-swarm-networking')
+const Multifeed = require('dwebmultifeed')
+const Networker = require('dwebmultifeed/networker')
+const crypto = require('@ddatabase/crypto')
 
-// create a new corestore for our hypercores
-const corestore = new Corestore(ram)
+// create a new basestore for our ddatabases
+const basestore = new Basestore(ram)
 
-// initialize hyperswarm using corestore-swarm-networker and configure for multifeed
-const network = new Networker(new SwarmNetworker(corestore))
+// initialize dswarm using basestore-swarm-networker and configure for multifeed
+const network = new Networker(new SwarmNetworker(basestore))
 
 // create two separate instances of multifeed for use across a single network swarm
-const multi1 = new Multifeed(corestore, { key: crypto.randomBytes(32) })
-const multi2 = new Multifeed(corestore, { key: crypto.randomBytes(32) })
+const multi1 = new Multifeed(basestore, { key: crypto.randomBytes(32) })
+const multi2 = new Multifeed(basestore, { key: crypto.randomBytes(32) })
 
 // start replicating
 network.swarm(multi1)
 network.swarm(multi2)
 
 // create a third instance which shares a key with the first
-const multi3 = new Multifeed(corestore, { key: multi1.key })
+const multi3 = new Multifeed(basestore, { key: multi1.key })
 
 // multi1 and multi3 will now replicate feeds
 network.swarm(multi3)
@@ -116,21 +111,21 @@ network.swarm(multi3)
 
 For more information on how to implement replication across multiple multifeeds, see [test/new-basic.js](test/new-basic.js) for an example.
 
-The main export (`new Multifeed(storage, opts)`) is API compatible with the original Multifeed as documented below. `storage` can also be a corestore (otherwise one is created with `storage`). Then connect it to a corestore swarm networker to apply multifeed replication.
+The main export (`new Multifeed(storage, opts)`) is API compatible with the original Multifeed as documented below. `storage` can also be a basestore (otherwise one is created with `storage`). Then connect it to a basestore swarm networker to apply multifeed replication.
 
 ## API
 
 ```js
-var multifeed = require('multifeed')
+var multifeed = require('dwebmultifeed')
 ```
 
 ### var multi = multifeed(storage[, opts])
 
-Pass in a [random-access-storage](https://github.com/random-access-storage/random-access-storage) backend, and options. Included `opts` are passed into new hypercores created, and are the same as [hypercore](https://github.com/mafintosh/hypercore#var-feed--hypercorestorage-key-options)'s.
+Pass in a [random-access-storage](https://github.com/random-access-storage/random-access-storage) backend, and options. Included `opts` are passed into new ddatabases created, and are the same as [ddatabase](https://github.com/dwebprotocol/ddatabase#var-feed--hypercorestorage-key-options)'s.
 
 Valid `opts` include:
 - `opts.encryptionKey` (string): optional encryption key to use during replication. If not provided, a default insecure key will be used.
-- `opts.hypercore`: constructor of a hypercore implementation. `hypercore@8.x.x` is used from npm if not provided.
+- `opts.ddatabase`: constructor of a ddatabase implementation. `ddatabase@10.x.x` is used from npm if not provided.
 
 ### multi.writer([name], [options], cb)
 
@@ -153,7 +148,7 @@ main === multi.writer('main')          // => true
 
 ### var feeds = multi.feeds()
 
-An array of all hypercores in the multifeed. Check a feed's `key` to
+An array of all ddatabases in the multifeed. Check a feed's `key` to
 find the one you want, or check its `writable` / `readable` properties.
 
 Only populated once `multi.ready(fn)` is fired.
@@ -168,7 +163,7 @@ Create an encrypted duplex stream for replication.
 
 Ensure that `isInitiator` to `true` to one side, and `false` on the other. This is necessary for setting up the encryption mechanism.
 
-Works just like hypercore, except *all* local hypercores are exchanged between
+Works just like ddatabase, except *all* local ddatabases are exchanged between
 replication endpoints.
 
 ### stream.on('remote-feeds', function () { ... })
@@ -209,15 +204,15 @@ stream errors, two fatal errors specific to multifeed:
 With [npm](https://npmjs.org/) installed, run
 
 ```
-$ npm install @frando/corestore-multifeed
+$ npm install @frando/basestore-multifeed
 ```
 
 ## See Also
 
 - [multifeed (original)](https://github.com/kappa-db/multifeed)
 - [multifeed-index](https://github.com/kappa-db/multifeed-index)
-- [hypercore](https://github.com/mafintosh/hypercore)
-- [kappa-core](https://github.com/kappa-db/kappa-core)
+- [ddatabase](https://github.com/dwebprotocol/ddatabase)
+- [kappa-base](https://github.com/kappa-db/kappa-base)
 
 ## License
 

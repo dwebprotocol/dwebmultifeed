@@ -1,6 +1,6 @@
 var test = require('tape')
 var multifeed = require('..')
-var hypercrypto = require('hypercore-crypto')
+var dwebcrypto = require('@ddatabase/crypto')
 var ram = require('random-access-memory')
 var ral = require('random-access-latency')
 var tmp = require('tmp').tmpNameSync
@@ -239,7 +239,7 @@ test('regression: replicate before multifeed is ready', function (t) {
 })
 
 test('regression: MFs with different root keys cannot replicate', function (t) {
-  var key = hypercrypto.keyPair().publicKey
+  var key = dwebcrypto.keyPair().publicKey
   var m1, m2
 
   m1 = multifeed(ram, { valueEncoding: 'json', encryptionKey: key })
@@ -300,7 +300,7 @@ test('regression: calling close while closing should not throw errors', function
   })
 })
 
-test('regression: sync two single-core multifeeds /w different storage speeds', function (t) {
+test('regression: sync two single-base multifeeds /w different storage speeds', function (t) {
   t.plan(5)
 
   function slowram (delay) {
@@ -336,7 +336,7 @@ test('regression: sync two single-core multifeeds /w different storage speeds', 
   }
 })
 
-// Doesn't work because corestore folder structure is differnt.
+// Doesn't work because basestore folder structure is differnt.
 test.skip('regression: ensure encryption key is not written to disk', function (t) {
   t.plan(6)
 

@@ -1,13 +1,13 @@
-const hcrypto = require('hypercore-crypto')
+const dcrypto = require('@ddatabase/crypto')
 const Multiplexer = require('./mux')
 const debug = require('debug')('multifeed')
 const { EventEmitter } = require('events')
 
 class MuxerTopic extends EventEmitter {
-  constructor (corestore, rootKey, opts = {}) {
+  constructor (basestore, rootKey, opts = {}) {
     super()
-    this._id = hcrypto.randomBytes(2).toString('hex')
-    this.corestore = corestore
+    this._id = dcrypto.randomBytes(2).toString('hex')
+    this.basestore = basestore
     this.rootKey = rootKey
     this._feeds = new Map()
     this._streams = new Map()
@@ -87,7 +87,7 @@ class MuxerTopic extends EventEmitter {
   }
 
   _getFeed (key, cb) {
-    var feed = this.corestore.get({
+    var feed = this.basestore.get({
       key,
       ...this._opts
     })
@@ -112,7 +112,7 @@ class MuxerTopic extends EventEmitter {
 module.exports = class MultifeedNetworker {
   constructor (networker) {
     this.networker = networker
-    this.corestore = networker.corestore
+    this.basestore = networker.basestore
     this.muxers = new Map()
     this.streamsByKey = new Map()
 
@@ -149,8 +149,8 @@ module.exports = class MultifeedNetworker {
     if (!Buffer.isBuffer(rootKey)) rootKey = Buffer.from(rootKey, 'hex')
     const hkey = rootKey.toString('hex')
     if (this.muxers.has(hkey)) return this.muxers.get(hkey)
-    const mux = opts.mux || new MuxerTopic(this.corestore, rootKey, opts)
-    const discoveryKey = hcrypto.discoveryKey(rootKey)
+    const mux = opts.mux || new MuxerTopic(this.basestore, rootKey, opts)
+    const discoveryKey = dcrypto.discoveryKey(rootKey)
     // Join the swarm.
     this.networker.configure(discoveryKey, { announce: true, lookup: true })
     this.muxers.set(hkey, mux)
@@ -166,7 +166,7 @@ module.exports = class MultifeedNetworker {
     const hkey = rootKey.toString('hex')
     var mux = this.muxers.get(hkey)
     if (!mux) return false // throw??
-    const discoveryKey = hcrypto.discoveryKey(rootKey)
+    const discoveryKey = dcrypto.discoveryKey(rootKey)
     this.networker.configure(discoveryKey, { announce: false, lookup: false })
     this.muxers.delete(hkey)
     // remove and close any existing streams from this mux instance
