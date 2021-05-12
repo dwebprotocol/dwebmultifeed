@@ -1,16 +1,16 @@
 {
-  "name": "hypermultifeed",
-  "version": "1.1.1",
-  "description": "multi-writer hypercore using corestore and networker",
+  "name": "dwebmultifeed",
+  "version": "1.0.0",
+  "description": "Multi-writer dDatabase using Basestore and networker",
   "publishConfig": {
     "access": "public"
   },
-  "author": "Stephen Whitmore <sww@eight.net>, Franz Heinzmann <frando@unbiskant.org>, Doug Anderson <DougAnderson444@gmail.com>",
+  "author": "Jared Rice <jared@peepsx.com>",
   "repository": {
-    "url": "git://github.com/DougAnderson444/hypermultifeed"
+    "url": "https://github.com/dwebprotocol/dwebmultifeed.git"
   },
-  "homepage": "https://github.com/DougAnderson444/hypermultifeed",
-  "bugs": "https://github.com/DougAnderson444/hypermultifeed/issues",
+  "homepage": "https://dwebx.org",
+  "bugs": "https://github.com/dwebprotocol/dwebmultifeed/issues",
   "main": "index.js",
   "scripts": {
     "test": "tape test/new-basic.js",
@@ -18,13 +18,13 @@
   },
   "keywords": [],
   "dependencies": {
-    "@corestore/networker": "^1.0.3",
+    "@basestore/networker": "^1.0.0",
     "abstract-extension": "^3.1.1",
-    "corestore": "^5.8.1",
+    "basestorex": "^1.0.0",
     "debug": "^4.1.0",
-    "hypercore": "^9.6.0",
-    "hypercore-crypto": "^2.1.1",
-    "hypercore-protocol": "^8.0.7",
+    "ddatabase": "^10.0.0",
+    "@ddatabase/crypto": "^1.0.0",
+    "@ddatabase/protocol": "^1.0.0",
     "inherits": "^2.0.3",
     "mutexify": "^1.2.0",
     "nanoresource": "^1.3.0",
@@ -35,8 +35,8 @@
     "through2": "^3.0.0"
   },
   "devDependencies": {
-    "@hyperswarm/dht": "^3.6.5",
-    "hyperswarm": "^2.15.2",
+    "@dswarm/dht": "^1.0.0",
+    "dswarm": "^1.0.0",
     "pump": "^3.0.0",
     "pumpify": "^1.5.1",
     "random-access-latency": "^1.0.0",
